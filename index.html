@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Endodontics Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+        }
+        .quiz-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .option-button {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        .option-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        }
+        .option-button.correct {
+            background-color: #28a745 !important; /* Green */
+            color: white !important;
+            border-color: #28a745 !important;
+        }
+        .option-button.incorrect {
+            background-color: #dc3545 !important; /* Red */
+            color: white !important;
+            border-color: #dc3545 !important;
+        }
+        .option-button.selected {
+             /* Slightly darker blue for selected but not yet graded */
+        }
+        .option-button:disabled {
+            cursor: not-allowed;
+        }
+        #feedback-area {
+            min-height: 24px; /* Ensure space for feedback text */
+        }
+        /* Modal styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5); /* Dim background */
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: #fff;
+            margin: auto;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+        }
+        .modal-close-button {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div id="quiz-container" class="quiz-container">
+        <div id="progress-area" class="text-right text-sm text-gray-500 mb-4">Савол 0 / 0</div>
+        <h2 id="question-area" class="text-2xl font-semibold mb-6 text-gray-700">Савол юкланмоқда...</h2>
+        <div id="options-area" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            </div>
+        <div id="feedback-area" class="text-center font-medium mb-6"></div>
+        <button id="next-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
+            Кейинги савол
+        </button>
+        <div id="score-area" class="mt-6 text-lg font-semibold text-center text-blue-600">Балл: 0</div>
+    </div>
+
+    <div id="scoreModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title" class="text-2xl font-bold mb-4 text-gray-800">Тест якунланди!</h3>
+            <p id="modal-score-text" class="text-lg mb-6 text-gray-700">Сизнинг баллингиз: 0/0</p>
+            <p id="modal-percentage-text" class="text-lg mb-6 text-gray-700"></p>
+            <button id="restart-button" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-150 ease-in-out">
+                Қайта бошлаш
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const rawQuizText = `
+#Биологик агентлар (микроблар ва уларнинг токсинлари) пульпага тушади:
++барча жавоблар тугри
+-кариоз бушликдан дентин каналчалари оркали
+-кон томири оркали
+-лимфа томири оркали
+-перфоратив тешикдан
+-огиз суюклигидан
+
+#Пульпанинг уткир яллигланиш боскичида кайси белгилар ажратилади:
++барча жавоблар тугри
+-альтерасия
+-экссудасия
+-гиперемия
+-модда алмашинуви бузилиши
+
+#.Пульпада чукиб йигиладиган дентинсимон хосилалар бу:
++дентикллар
+-гиперплазия
+-барча жавоблар тугри
+-флюороз
+-гипоплазия
+
+#.Тиш бушлигида жойлашиш буйича дентикллар булади:
++девор олди
+-гангреноз
+-диффуз
+-кайталанувчи
+-тугри жавоб йук
+
+#Тиш бушлигида жойлашиш буйича дентикллар булади:
++интерстисиал
+-фиброз
+-уткир
+-сурункали
+-кайталанувчи
+
+#.Дентикллар чукади:
++Пульпанинг тож кисмида
+-сементда
+-периодонтда
+-эмальда
+-дентинда
+
+#Дентикллар чукади:
++Пульпанинг илдиз кисмида
+-сементда
+-периодонтда
+-эмальда
+-дентинда
+
+#.Аппликасион анестезия ... учун кулланилади:
++огиз бушлиги шиллик каватини огриксизлантириш
+- альвеоляр усикда жаррохлик аралашувларини утказиш
+- анестетикни оким билан юбориш учун
+- юкори жаг моляр тишларни олиш учун
+- илдиз учи резексиясини утказиш
+
+# Аппликасион анестезияни утказиш мумкин:
++ барча жавоблар тугри
+- 1-2 % ли лидокаин эритмаси билан
+- 1-2 % ли пиромекаин эритмаси билан
+- 0,5-2 % ли дикаин эритмаси билан
+- 10 % ли лидокаин аэрозоли билан
+
+#Утказувчан огриксизлантиришда:
++анестетик нерв сохасига юборилади
+-анестетик тукималарга юборилади
+-барча жавоблар нотугри
+-анестетик субмукоз юборилади
+-анестетик вена ичига юборилади
+
+#.Наркоз утказиш учун курсатмалар:
++ катта хажмли огрикли муолажалар
+- бир марталик шприсларнинг булмаслиги
+- беморнинг ёш булиши
+- барча жавоблар тугри
+- т угри жавоб йук
+
+#Огриксизлантириш усулларини асосли равишда куллаш оркали куйидагиларга эришилади:
++барча жавоблар тугри
+-иш самарадорлигини оширишга
+-беморлар орасида шифокор обрусини оширишга
+-беморнинг рухий эмосионал таранглигини камайтиришга
+-шифокорнинг таранглигини камайтиришга
+
+#.Анестетикнинг харорати булиши керак:
++Одам тана хароратига якин
+-10-15 0 С
+-15-20 0 С
+-5-10 0 С
+-тугри жавоб йук
+
+#Огриксизлантирувчи эритмани юбориш мумкин:
++барча жавоблар тугри
+-периневрал
+-эндоневрал
+-вена ичига
+-мушак орасига
+
+#.Юза (аппликасион) анестезия учун дикаин кандай куринишда ишлатилади:
++барча жавоблар тугри*
+-2 % ли эритма
+-3 % ли эритма
+-0,25 % ли эритма
+-1 % ли эритма
+
+#Новокаин билан утказилган анестезия давомийлиги:
++30 минут
+-3 соат
+-6 соат
+-2 соат
+-7 соат
+
+#.Адреналин гидрохлорид эритмасини анестетик эритмасига куйидаги куринишда кушилади:
++0,1 % ли эритма
+-0.3 % ли эритма
+-0,5 % ли эритма
+-0.2 % ли эритма
+-10% ли эритма
+
+#.Лидокаин огриксизлантирувчи самара буйича новокаиндан неча марта устун:
++2-3 марта
+-10 марта
+-тугри жавоб йук
+-барча жавоблар тугри
+-8 марта
+
+#.Игна санчилиши тахмин килинган жойга ишлов берилади:
++1% ли йод настойкаси билан
+-10% ли хлорамин эритмаси билан
+-барча жавоблар тугри
+-тугри жавоб йук
+-40%  ли формалин эритмаси билан
+
+#.Пульпитни даволашнинг биологик усулини куллашга курсатмалар булиб хисобланади:
++пульпа бушлиги гумбазининг бехосдан очилиб колиши
+-уткир периодонтит
+-сурункали гранулематоз периодонтит
+-сурункали гангреноз пульпит
+-сурункали гранулясияланувчи периодонтит
+
+#.Пульпитни биологик усулда даволашда пульпани бевосита коплаш амалга оширилади:
++очилиб колган тиш бушлиги оркали
+-пульпа олди дентин кавати оркали
+-инъексион йул оркали
+-некрозланган дентин кавати оркали
+-тугри жавоб йук
+
+#.Пульпитни биологик усулда даволашда пульпани билвосита коплаш амалга оширилади:
++пульпа олди дентин кавати оркали
+-очилиб колган тиш бушлиги оркали
+-инъексион йул оркали
+-тугри жавоб йук
+-барча жавоблар тугри
+
+#.Пульпанинг витал экстирпасияси бу:
++огриксизлантириш остида илдиз ва тож пульпасини олиб ташлаш
+-девитализасиялашган пульпани олиб ташлаш
+-бутун пульпани саклаш
+-барча жавоблар тугри
+-тугри жавоб йук
+
+#.Витал ампутасия кулланилади:
++уткир учокли пульпит
+-урта кариес
+-сурункали гранулематоз периодонтит
+-юза кариес
+-сурункали гранулясияланувчи периодонтит
+
+#.Витал ампутасия усули кулланилади:
++сурункали фиброз пульпит
+-барча жавоблар тугри
+-сурункали гангреноз пульпит
+-уткир  периодонтит
+-тугри жавоб йук
+
+#.Пульпитни даволашнинг консерватив усули булиб хисобланади:
++биологик усул
+-девитал ампутасия
+-девитал экстирпасия
+-витал экстирпасия
+-тугри жавоб йук
+
+#.Пульпитни даволашнинг консерватив усули булиб хисобланади:
++витал  ампутасия
+-тугри жавоб йук
+-девитал экстирпасия
+-витал экстирпасия
+-барча жавоблар тугри
+
+#.Кон тухтатиш учун кулланилади:
++гемостатиклар
+-антибиотиклар
+-антисептиклар
+-анестетиклар
+-сульфаниламидлар
+
+#.Тож пульпасини олиш учун кандай асбоб кулланилади:
++экскаватор
+-гладилка
+-штопфер
+-зонд
+-шпатель
+
+#.Тож пульпасини олиш учун кандай асбоб кулланилади:
++шарсимон бор
+-гладилка
+-штопфер
+-зонд
+-шпатель
+
+#23 тиш травмаси натижасида тож кисмининг 2/3 синиб, тиш пульпаси ялангочланди. Даволаш усулини танланг:
++витал экстирпасия
+-тишни олиш
+-тугри жавоб йук
+-барча жавоблар тугри
+-антибиотикларни буюриш
+
+#.Сабабсиз, хуружсимон, иррадиасияланувчи огрикларнинг мавжудлиги кайси ташхисга тугри келади:
++уткир диффуз пульпит
+-гиперестезия
+-эрозия
+-чукур кариес
+-барча жавоблар тугри
+
+# Витал ампутасияда илдиз каналарининг кириш кисмига куйилади:
++кальсий гидроксид препаратлари
+-резорсин – формалин пастаси
+-маргимушли паста
+-асбест
+-йод
+
+#.Витал ампутасиядан сунг кон тухтатиш учун гемостатик сифатида кулланилади:
++капрофер
+-тугри жавоб йук
+-йод
+-барча жавоблар тугри
+-дистилланган сув
+
+#.21 тиш травматик пульпитини даволаш усулини танланг. Объектив курикда тиш тожи деярли йук
++витал экстирпасия ва кейинчалик реставрасия
+-витал ампутасия
+-девитал ампутасия
+-барча жавоблар тугри
+-антибиотикларни буюриш
+
+#.Витал экстирпасия усулини утказиш вактида кон кетганда зарур:
++гемостатик куллаш
+-резорсин куллаш
+-формалин куллаш
+-огрик колдирувчи воситаларни буюриш
+-тугри жавоб йук
+
+#.Илдиз пульпасини олиш учун кулланилади:
++пульпоэкстрактор
+-спредер
+-К-файл
+-Н-файл
+-протейпер
+
+#.Витал экстирпасия усулини утказишда биринчи боскич булиб хисобланади:
++огриксизлантириш
+-тож пульпасини олиш
+-кариоз ковакни кенгайтириш
+-тиш бушлигини очиш
+-илдиз пульпасини олиш
+
+#.Витал экстирпасия усулини утказишга курсатмалар:
++барча жавоблар тугри
+-сурункали фиброз пульпит
+-сурункали гангреноз пульпит
+-уткир диффуз пульпит
+-сурункали гипертрофик пульпит
+
+#.Илдиз пульпасини олиш учун куллаш мумкин:
++файл
+-каналтулдиргич
+-спредер
+-плагер
+-барча жавоблар тугри
+
+#.Илдиз пульпасини олиш учун куллаш мумкин:
++рашпиль
+-каналтулдиргич
+-спредер
+-плагер
+-барча жавоблар тугри
+
+#.Анамнезида миокард инфарктини утказган беморда 38 тиш пульпитини даволашда кайси усулни куллаш маъкул:
++девитал ампутасия
+-витал экстирпасия
+-барча жавоблар тугри
+-антибиотикларни буюриш
+-тугри жавоб йук
+
+#.Девитал ампутасия усулини утказишда содир булиши мумкин булган асоратлар:
++милк сургичининг некрози
+-пульпоэкстракторнинг синиши
+-каналтулдиргичнинг синиши
+-файлнинг синиши
+-пломба ашёсининг илдиз учидан чикиши
+
+#.Девитал ампутасия усулини утказишда содир булиши мумкин булган асоратлар:
++маргимушли периодонтит
+-пульпоэкстракторнинг синиши
+-каналтулдиргичнинг синиши
+-файлнинг синиши
+-барча жавоблар тугри
+
+#.Девитал ампутасия усулини утказишда содир булиши мумкин булган асоратлар:
++тишлаш вактида огрикларнинг пайдо булиши
+-тугри жавоб йук
+-каналтулдиргичнинг синиши
+-файлнинг синиши
+-барча жавоблар тугри
+
+#«Septodont» фирмасининг «каустинерв маргимушли» девитализасияловчи малхамнинг таъсир муддати:
++7 кун
+-4 кун
+-1 кун
+-2 кун
+-5 кун
+
+#.«Septodont» фирмасининг «каустинерв химояловчи, маргимуш тутмайдиган» девитализасияловчи малхамнинг таъсир муддати:
++7-10 кун
+-5 кун
+-1 кун
+-2 кун
+-4 кун
+
+#«Septodont» фирмасининг «каустинерв тез таъсир килувчи» девитализасияловчи малхамнинг таъсир муддати:
++3 кун
+-5 кун
+-1 кун
+-2 кун
+-4 кун
+
+#Пульпа девитализасияси учун кулланиладиган маргимуш пастасининг дозаси (шарсимон борнинг кайси улчамига (№) тугри келади):
++1
+-2
+-3
+-4
+-5
+
+#.Пульпа девитализасияси кайси препарат оркали амалга оширилади:
++маргимушли паста
+-кальмесин
+-эфир
+-спирт
+-резорсин-формалин
+
+#.Куп илдизли тишларга маргимушли паста кандай муддатга куйилади:
++48 соат
+-24 соат
+-72 соат
+-фарки йук
+-30 минут
+
+#.Маргимушли паста куйишнинг тугри техникаси кандай:
++очилган пульпа шохига маргимушли паста, огриксизлантирувчи эритма шимдирилган тампон, сувли дентин
+-маргимушли паста, сувли дентин
+-маргимушли паста, огриксизлантирувчи эритма шимдирилган тампон
+-барча жавоблар тугри
+-чархлаш, даволовчи таглик, маргимушли паста, сувли дентин
+
+#.Пульпитнинг кайси шаклида девитал ампутасия усули кулланилмайди:
++гангреноз пульпит
+-конкрементоз пульпит
+-гипертрофик пульпит
+-уткир диффуз пульпит
+-уткир пульпит
+
+#Девитал экстирпасия бу:
++девитализасия утказгандан сунг тож ва илдиз пульпасини олиш
+-илдиз пульпасини саклаган холда тож пульпасини олиш
+-утувчи каналлардан пульпани олиб, утмас каналларни мумификасия килиш
+-тож ва илдиз пульпасини саклаш
+-пульпани анестезия остида некротизасия утказмасдан олиш
+
+#.Фронтал тишларга маргимушли паста кандай муддатга куйилади:
++24 соат
+-48 соат
+-72 соат
+-фарки йук
+-30 минут
+
+#.«экстирпасия» тушунчаси нимани англатади:
++тож ва илдиз пульпасини тулик олиш
+-тож пульпасини олиш
+-илдиз пульпасини олиш
+-даволовчи таглик куйиш
+-ажратувчи таглик куйиш
+
+#Уткир пульпитлар булади:
++учокли
+-диффуз
+-фиброз
+-гангреноз
+
+# Стоматолог юкори унг 6 тишда патологик емирилиш ва тиш рангининг узгарганлигини аниклади. Об ектив -  тиш интакт. Зарур булган кушимча текшириш усуллари:
++ рентгенташхислаш
+-палпасия
+- эхокардиография
+- зондлаш
+- МРТ
+
+# Бемор жарохатдан сунгги  21|12 тишлар сохасидаги огрикка шикояти билан мурожаат килди. Тиш  вертикаля перкуссияси огрикли.   Ташхис куйинг:
++  21|12 тишлар жарохатли периодонтити
+- инфексион периодонтит
+- медикаментоз периодонтит
+- сурункали периодонтит
+- чукур кариес
+
+# Куп илдизли тиш сурункали фиброз периодонтит буйича даволаниб тугатилмаган.  Хозирда беморни ушбу тиш сохасидаги доимий симилловчи огриклар ва огирлик хисси безовта килмокд Якуний ташхислаш учун кушимча равишда куйидагиларни утказиш лозим:
++ рентген
+- ЭОД
+- перкуссия
+- ревмосинама
+- стоматоскопия
+
+# Бемор А. 29 ёш стоматологга  юкори жаг  унг тараф 4 ва5 тишларда кариоз кавак борлигига ва овкат колдикларининг тикилишига шикояти билан мурожаат килди. ВОЗ буйича тиш ракамини курсатинг:
++ 14
+- 24
++ 15
+- 25
+- 35
+
+#Бемор А. 19 ёш стоматологга  юкори жаг  унг тараф 6 ва7 тишларда кариоз кавак борлигига ва овкат колдикларининг тикилишига шикояти билан мурожаат килди. ВОЗ буйича тиш ракамини курсатинг:
++ 16
+- 24
++ 17
+- 25
+- 35
+
+#Бемор А. 17 ёш стоматологга  юкори жаг  унг тараф 1 ва2 тишларда кариоз кавак борлигига ва овкат колдикларининг тикилишига шикояти билан мурожаат килди. ВОЗ буйича тиш ракамини курсатинг:
++ 11
+- 24
++ 12
+- 25
+- 35
+
+#Бемор А. 29 ёш стоматологга  пастки жаг  унг тараф 1 ва2 тишларда кариоз кавак борлигига ва овкат колдикларининг тикилишига шикояти билан мурожаат килди. ВОЗ буйича тиш ракамини курсатинг:
++ 41
+- 24
++ 42
+- 25
+- 35
+
+#Стоматологик хона баландлиги куйидагидан паст булмаслиги лозим:
++3м
+-2м
+-2м 80 см
+-4 м
+-2м 60 см
+
+#Стоматологик хонада асосий хужжат булиб хисобланади:
++Форма 043/у
+-Буйрук № 600
+-Буйрук № 527
+-Буйрук № 462
+-Буйрук № 575
+
+#Стоматологик хонада асосий хужжат булиб хисобланади:
++Форма 39-стом.
+-Буйрук № 480
+-Буйрук № 570
+-Буйрук № 462
+-Буйрук № 560
+
+#Кимёвий (совук) стерилизасия усулида стерилланади:
++Стоматологик кузгу
+-Пинсет
+-Экскаватор
+-Гладилка
+-Штопфер
+
+#Кимёвий (совук) стерилизасия усулида стерилланади:
++Кайчи
+-Пинсет
+-Зонд
+-Штопфер
+-Гладилка
+
+#Автоклавлаш усулида стерилланади:
++Барча жавоблар тугри
+-Штопфер
+-Экскаватор
+-Пахта болишчалари
+-Пахта тампонлари
+
+#Беморни текширишнинг асосий усулларига киради:
++Бемор суровини утказиш
+-Рентгенологик текширув
+-Термодиагностика
+-Биохимик текширув
+-Микробиологик текширув
+
+#Асосий текшириш усулларига киради:
++Тишни ураб турувчи юмшок тукималарни пайпаслаш *
+-Ситологик текширув
+-Электроодонтодиагностика
+-Гистамин синамаси
+-Биохимик текширув
+
+#Кушимча текшириш усулларига киради:
++Рентгенологик текширув
+-Анамнез йигиш
+-Бемор суровини утказиш
+-Тишлар перкуссияси
+-Тишларни зондлаш
+
+#‘Текшириш усули номини топинг: тозаланган тиш юзасига нур тутами юборилади. Текширув натижалари тиш каттик тукималари холати тугрисида маълумот беради:
++Люминессент диагностика
+-Электроодонтодиагностика
+-Термометрия
+-Рентгенография
+-Эмални буяш
+
+#Тишнинг электркузгалувчанлигини аниклаш учун кулланиладиган усул:
++Электроодонтодиагностика
+-Рентгенография
+-Ситологик
+-Биохимик
+-Термодиагностика
+
+#Кариес – бу:
++Тиш каттик тукималарининг деминерализасияси ва юмшаши, хамда кейинчалик ковакнинг пайдо булиши билан кечадиган патологик жараёндир
+-Эмаль ва дентиннинг патологик емирилиши
+-Тиш пульпасининг яллигланиши
+-Периодонтдаги патологик жараён
+-Эмаль эрозияси	
+
+#Зарарланиш учоги жойлашиши буйича кариес булади:
++Фиссур
+-Юза
+-Урта
+-Чукур
+-Пульпа олди
+
+#Зарарланиш учоги жойлашиши буйича кариес булади:
++Буйин олди
+-Пульпа ичи
+-Пульпа олди
+-Дог боскичидаги
+-Урта
+
+#Зарарланиш учоги жойлашиши буйича кариес булади:
++Апроксимал
+-Чукур
+-Урта
+-Юза
+-Иккиламчи
+
+#Топографик таснифга (чукурлигига) кура кариес булади:
++Дог боскичидаги
+-Уткир
+-Сурункали
+-Бирламчи
+-Иккиламчи
+
+#Топографик таснифга (чукурлигига) кура кариес булади:
++Юза
+-Сурункали
+-Кайталанувчи
+-Иккиламчи
+-Сиркуляр
+
+#Топографик таснифга (чукурлигига) кура кариес булади:
++Урта
+-Уткир
+-Гулловчи
+-Иккиламчи
+-Сиркуляр
+
+#Асоратланган кариес булиб хисобланади:
++Периодонтит
+-Эрозия
+-Некроз
+-Гипоплазия
+-Гиперплазия
+
+#Дог боскичидаги кариес нима билан киёсланади:
++Гипоплазия
+-Эрозия
+-Понасимон нуксон
+-Гиперестезия
+-Эмаль некрози
+
+#Дог боскичидаги кариес нима билан киёсланади:
++Флюороз
+-Юза кариес
+-Эрозия
+-Пульпит
+-Понасимон нуксон
+
+#Асоратланган кариес булиб хисобланади:
++Пульпит
+-Гиперестезия
+-Травма
+-Патологик емирилиш
+-Тугалланмаган амелогенез
+
+#Илгари куйилган пломба олдида кариоз ковакнинг пайдо булиши кандай номланади:
++Кайталанувчи кариес
+-Юза кариес
+-Эмаль гипоплазияси
+-Кислотали некроз
+-Бошлангич кариес
+
+#Илгари куйилган пломба олдида кариоз ковакнинг пайдо булиши кандай номланади:
++Иккиламчи кариес
+-Флюороз
+-Дог боскичидаги кариес
+-Эмаль гиперестезия
+-Эмаль эрозияси
+
+#Дог боскичидаги кариес кечади:
++Симптомсиз
+-Хуружсимон огриклар билан
+-Тунги огриклар билан
+-Нуксон пайдо булиши билан
+-Термик таъсиротларга огриклар билан
+
+#Кариоз догнинг ранги булиши мумкин:
++Ок
+-Пушти ранг
+-Мовий ранг
+-Кук
+-Яшил
+
+#Кариоз догнинг ранги булиши мумкин:
++Чёрный
+-Красный
+-Синий
+-Бинафша ранг
+-Яшил
+
+#Дог боскичидаги кариесни ташхислаш максадида витал буяш усули нима ёрдамида утказилади:
++Метилен куки
+-Йод
+-Спирт
+-Бриллиант куки
+-Калий Перманганат
+
+#Дог боскичидаги кариесда тиш пульпаси кандай ток кучига таъсирланади:
++2-6 мкА
+-12-20 мкА
+-20-40 мкА
+-40-60 мкА
+-100 мкА дан куп
+
+#Бошлангич кариесда доглар булади:
++Якка
+-Куп сонли
+-Симметрик
+-Аник чегарага эга эмас
+-Катта улчамли
+
+#Бошлангич кариесда кариоз дог каерда жойлашади:
++Апроксимал юза
+-Вестибуляр юза
+-Кесув кирраси
+-Танглай юзаси
+-Экватор сохаси
+
+#Кариоз догнинг асосий жойлашадиган жойлари:
++Фиссуралар сохаси
+-Тил юзаси
+-Вестибуляр юза
+-Танглай юзаси
+- Кесув кирраси
+
+#Кариоз догнинг асосий жойлашадиган жойлари:
++Апроксимал юза
+-Думбоклар сохаси
+-Кесув кирраси
+-Тил юзаси
+-Вестибуляр юза
+
+#Кариоз догнинг асосий жойлашадиган жойлари:
++Буйин олди сохаси
+-Экватор сохаси
+-Кесув кирраси
+-Танглай юзаси
+-Вестибуляр юза
+
+#Бошлангич кариесни ташхислашда кариоз догни метилен куки билан буяшда ишлатиладиган эритма:
++2% сувли эритма
+-10% сувли эритма
+-5% сувли эритма
+-1% сувли эритма
+-3% сувли эритма
+`; // End of rawQuizText. Note: The provided text is duplicated, so the quiz will have repeated questions.
+
+        const questionArea = document.getElementById('question-area');
+        const optionsArea = document.getElementById('options-area');
+        const feedbackArea = document.getElementById('feedback-area');
+        const nextButton = document.getElementById('next-button');
+        const scoreArea = document.getElementById('score-area');
+        const progressArea = document.getElementById('progress-area');
+
+        const scoreModal = document.getElementById('scoreModal');
+        const modalScoreText = document.getElementById('modal-score-text');
+        const modalPercentageText = document.getElementById('modal-percentage-text');
+        const restartButton = document.getElementById('restart-button');
+        
+        let allQuizData = [];
+        let currentQuizSet = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let answerSelected = false;
+        const MAX_QUESTIONS_PER_SESSION = 25;
+
+        function parseQuizData(text) {
+            const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+            const quizItems = [];
+            let currentItem = null;
+
+            for (const line of lines) {
+                if (line.startsWith('#')) {
+                    if (currentItem && currentItem.questionText && currentItem.options.length > 1 && currentItem.correctOptionText) {
+                         // Ensure correctOptionText is actually in options before deduping
+                        if (!currentItem.options.includes(currentItem.correctOptionText)) {
+                            currentItem.options.push(currentItem.correctOptionText);
+                        }
+                        currentItem.options = [...new Set(currentItem.options)]; // Deduplicate options
+                        // Ensure there's at least one incorrect option
+                        if (currentItem.options.length >= 2 && currentItem.options.includes(currentItem.correctOptionText)) {
+                           quizItems.push(currentItem);
+                        }
+                    }
+                    currentItem = {
+                        questionText: line.substring(line.startsWith('#.') ? 2 : 1).trim(),
+                        options: [],
+                        correctOptionText: null,
+                    };
+                } else if (currentItem) {
+                    if (line.startsWith('+')) {
+                        const option = line.substring(1).trim();
+                        currentItem.options.push(option);
+                        if (!currentItem.correctOptionText) { 
+                            currentItem.correctOptionText = option;
+                        }
+                    } else if (line.startsWith('-')) {
+                        const option = line.substring(1).trim();
+                        currentItem.options.push(option);
+                    }
+                }
+            }
+            // Add the last parsed item
+            if (currentItem && currentItem.questionText && currentItem.options.length > 1 && currentItem.correctOptionText) {
+                if (!currentItem.options.includes(currentItem.correctOptionText)) {
+                    currentItem.options.push(currentItem.correctOptionText);
+                }
+                currentItem.options = [...new Set(currentItem.options)];
+                 if (currentItem.options.length >= 2 && currentItem.options.includes(currentItem.correctOptionText)) {
+                    quizItems.push(currentItem);
+                }
+            }
+            // Filter out questions where correct answer might not be in options after Set or other issues
+            return quizItems.filter(item => item.options.includes(item.correctOptionText) && item.options.length >=2);
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function displayQuestion() {
+            answerSelected = false;
+            nextButton.disabled = true;
+            feedbackArea.textContent = '';
+            
+            if (currentQuestionIndex < currentQuizSet.length) {
+                const currentQuestion = currentQuizSet[currentQuestionIndex];
+                questionArea.textContent = currentQuestion.questionText;
+                
+                // Ensure correct option is present before shuffling options for display
+                let displayOptions = [...currentQuestion.options];
+                if (!displayOptions.includes(currentQuestion.correctOptionText)) {
+                    // This case should be rare if parsing is correct, but as a fallback:
+                    console.warn("Correct answer missing from options, adding it:", currentQuestion.correctOptionText, currentQuestion.options);
+                    // If it's truly missing, it might indicate a parsing error or source data issue.
+                    // For now, we'll proceed, but the question might be unanswerable correctly.
+                    // A robust solution might skip such questions earlier.
+                }
+
+                shuffleArray(displayOptions); 
+                optionsArea.innerHTML = ''; // Clear previous options
+
+                displayOptions.forEach(optionText => {
+                    const button = document.createElement('button');
+                    button.textContent = optionText;
+                    button.classList.add('option-button', 'w-full', 'p-3', 'bg-white', 'text-gray-700', 'font-medium', 'rounded-lg', 'border-2', 'border-gray-300', 'hover:border-blue-500', 'focus:outline-none', 'focus:ring-2', 'focus:ring-blue-400');
+                    button.onclick = () => handleAnswer(optionText, button);
+                    optionsArea.appendChild(button);
+                });
+                progressArea.textContent = `Савол ${currentQuestionIndex + 1} / ${currentQuizSet.length}`;
+            } else {
+                showFinalScore();
+            }
+        }
+
+        function handleAnswer(selectedOptionText, buttonElement) {
+            if (answerSelected) return; // Prevent multiple selections
+            answerSelected = true;
+
+            const currentQuestion = currentQuizSet[currentQuestionIndex];
+            const isCorrect = selectedOptionText === currentQuestion.correctOptionText;
+
+            Array.from(optionsArea.children).forEach(btn => {
+                btn.disabled = true; // Disable all option buttons
+                if (btn.textContent === currentQuestion.correctOptionText) {
+                    btn.classList.add('correct');
+                } else if (btn.textContent === selectedOptionText && !isCorrect) {
+                    btn.classList.add('incorrect');
+                }
+                 // Remove hover/focus styles that might persist
+                btn.classList.remove('hover:border-blue-500');
+            });
+            
+            buttonElement.classList.add(isCorrect ? 'correct' : 'incorrect');
+
+            if (isCorrect) {
+                score++;
+                feedbackArea.textContent = 'Тўғри!';
+                feedbackArea.className = 'text-center font-medium mb-6 text-green-600';
+            } else {
+                feedbackArea.textContent = `Нотўғри! Тўғри жавоб: ${currentQuestion.correctOptionText}`;
+                feedbackArea.className = 'text-center font-medium mb-6 text-red-600';
+            }
+            scoreArea.textContent = `Балл: ${score}`;
+            nextButton.disabled = false;
+            nextButton.focus();
+        }
+
+        function showFinalScore() {
+            questionArea.textContent = 'Тест якунланди!';
+            optionsArea.innerHTML = '';
+            feedbackArea.textContent = '';
+            nextButton.style.display = 'none'; // Hide next button
+            progressArea.textContent = `Тест тугади`;
+            
+            const percentage = currentQuizSet.length > 0 ? ((score / currentQuizSet.length) * 100).toFixed(1) : 0;
+            modalScoreText.textContent = `Сиз ${currentQuizSet.length} та саволдан ${score} тасига тўғри жавоб бердингиз.`;
+            modalPercentageText.textContent = `Натижа: ${percentage}%`;
+            scoreModal.style.display = 'flex';
+        }
+        
+        function startQuiz() {
+            allQuizData = parseQuizData(rawQuizText);
+            if (allQuizData.length === 0) {
+                questionArea.textContent = "Саволлар топилмади ёки хатолик юз берди. Илтимос, матнни текширинг.";
+                optionsArea.innerHTML = '';
+                nextButton.style.display = 'none';
+                return;
+            }
+
+            shuffleArray(allQuizData);
+            currentQuizSet = allQuizData.slice(0, Math.min(allQuizData.length, MAX_QUESTIONS_PER_SESSION));
+            
+            currentQuestionIndex = 0;
+            score = 0;
+            scoreArea.textContent = `Балл: ${score}`;
+            nextButton.style.display = 'block';
+            nextButton.disabled = true;
+            scoreModal.style.display = 'none';
+            displayQuestion();
+        }
+
+        nextButton.addEventListener('click', () => {
+            currentQuestionIndex++;
+            displayQuestion();
+        });
+
+        restartButton.addEventListener('click', () => {
+            scoreModal.style.display = 'none';
+            startQuiz();
+        });
+
+        // Initialize quiz on page load
+        startQuiz();
+
+    </script>
+</body>
+</html>
